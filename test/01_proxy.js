@@ -95,11 +95,13 @@ describe('proxy', () => {
 
   beforeEach((done) => {
     proxy = new Proxy();
-    proxy.listen({ port: testProxyPort }, done);
+
     proxy.onError((ctx, err, errorKind) => {
       const url = (ctx && ctx.clientToProxyRequest) ? ctx.clientToProxyRequest.url : '';
       console.log(`proxy error: ${errorKind} on ${url}:`, err);
     });
+
+    proxy.listen({ port: testProxyPort }, done);
   });
 
   afterEach(() => {
@@ -120,12 +122,15 @@ describe('proxy', () => {
     it('should generate a root CA file', (done) => {
       fs.access(`${__dirname}/../.http-mitm-proxy/certs/ca.pem`, (err) => {
         let rtv = null;
+
         if (err) {
           rtv = `${__dirname}/../.http-mitm-proxy/certs/ca.pem ${err}`;
         } else {
           rtv = true;
         }
+
         assert.equal(true, rtv, 'Can access the CA cert');
+
         done();
       });
     });
@@ -142,9 +147,13 @@ describe('proxy', () => {
 
           let len = 0;
 
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
+
           assert.equal(1024, len, 'body length is 1024');
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString(), 'sha256 hash matches');
+
           done();
         });
       });
@@ -157,9 +166,13 @@ describe('proxy', () => {
           }
 
           let len = 0;
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
+
           assert.equal(1024, len, 'body length is 1024');
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString(), 'sha256 hash matches');
+
           done();
         });
       });
@@ -185,8 +198,10 @@ describe('proxy', () => {
           if (Object.prototype.hasOwnProperty.call(body, 'length')) {
             len = body.length;
           }
+
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
+
           done();
         });
       });
@@ -201,9 +216,13 @@ describe('proxy', () => {
           }
 
           let len = 0;
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
+
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
+
           done();
         });
       });
@@ -216,9 +235,13 @@ describe('proxy', () => {
           }
 
           let len = 0;
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
+
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
+
           done();
         });
       });
@@ -247,9 +270,13 @@ describe('proxy', () => {
           }
 
           let len = 0;
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
+
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
+
           done();
         });
       });
@@ -260,10 +287,15 @@ describe('proxy', () => {
             done(new Error(`${err.message} ${JSON.stringify(err)}`));
             return;
           }
+
           let len = 0;
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
+
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
+
           done();
         });
       });
@@ -319,17 +351,26 @@ describe('proxy', () => {
           }
 
           let len = 0;
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
 
           assert.equal(1024, len);
 
           countString(body, 'AAA', (count) => {
             assert.equal(5, count);
             proxyHttp(`${testUrlB}/1024.bin`, false, (errB, respB, bodyB) => {
-              if (errB) console.log(`errB: ${errB.toString()}`);
+              if (errB) {
+                console.log(`errB: ${errB.toString()}`);
+              }
+
               let lenB = 0;
-              if (Object.prototype.hasOwnProperty.call(bodyB, 'length')) lenB = bodyB.length;
+              if (Object.prototype.hasOwnProperty.call(bodyB, 'length')) {
+                lenB = bodyB.length;
+              }
+
               assert.equal(1024, lenB);
+
               countString(bodyB, 'AAA', (countB) => {
                 assert.equal(0, countB);
                 done();
@@ -349,10 +390,14 @@ describe('proxy', () => {
           }
 
           let len = 0;
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
+
           assert.equal(1024, len);
           assert.equal(null, resp.headers['transfer-encoding']);
           assert.equal(1024, resp.headers['content-length']);
+
           done();
         });
       });
@@ -369,8 +414,9 @@ describe('proxy', () => {
           }
 
           let len = 0;
-
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
 
           assert.equal(1024, len);
           assert.equal('chunked', resp.headers['transfer-encoding']);
@@ -395,10 +441,14 @@ describe('proxy', () => {
           }
 
           let len = 0;
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
+
           assert.equal(1024, len);
           assert.equal('chunked', resp.headers['transfer-encoding']);
           assert.equal(null, resp.headers['content-length']);
+
           done();
         });
       });
@@ -416,7 +466,9 @@ describe('proxy', () => {
           }
           let len = 0;
 
-          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
+            len = body.length;
+          }
 
           assert.equal(true, len < 1024); // Compressed body
           assert.equal('chunked', resp.headers['transfer-encoding']);
@@ -436,6 +488,7 @@ describe('proxy', () => {
       ws.on('open', () => {
         ws.on('message', (data) => {
           assert.equal(data, testMessage);
+
           ws.close();
           done();
         });
@@ -453,6 +506,7 @@ describe('proxy', () => {
       ws.on('open', () => {
         ws.on('message', (data) => {
           assert.equal(data, testMessage);
+
           ws.close();
           done();
         });
@@ -517,6 +571,7 @@ describe('proxy', () => {
             assert(stats.frame);
             assert(stats.send);
             assert(stats.message);
+
             if (!stats.close) {
               setTimeout(() => {
                 assert(stats.close);
