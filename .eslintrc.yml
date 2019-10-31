@@ -21,4 +21,6 @@ rules:
   import/export: 2
   no-console: off
   no-underscore-dangle: off
+  no-undef: off
+  no-plusplus: off
   global-require: off

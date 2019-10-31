@@ -10,51 +10,53 @@ const WebSocket = require('ws');
 const Proxy = require('../');
 
 const fileStaticA = new nodeStatic.Server(`${__dirname}/wwwA`);
-const fileStaticB = new nodeStatic.Server(`${__dirname }/wwwB`);
+const fileStaticB = new nodeStatic.Server(`${__dirname}/wwwB`);
 const testHost = '127.0.0.1';
 const testPortA = 40005;
 const testPortB = 40006;
 const testProxyPort = 40010;
 const testWSPort = 40007;
-const testUrlA = `http://${ testHost}:${testPortA}`;
+const testUrlA = `http://${testHost}:${testPortA}`;
 const testUrlB = `http://${testHost}:${testPortB}`;
 
-const getHttp = function (url, cb) {
+const getHttp = (url, cb) => {
   request({ url }, (err, resp, body) => {
     cb(err, resp, body);
   });
 };
 
-const proxyHttp = function (url, keepAlive, cb) {
+const proxyHttp = (url, keepAlive, cb) => {
   request({
     url,
     proxy: `http://127.0.0.1:${testProxyPort}`,
-    ca: fs.readFileSync(`${__dirname }/../.http-mitm-proxy/certs/ca.pem`),
+    ca: fs.readFileSync(`${__dirname}/../.http-mitm-proxy/certs/ca.pem`),
     agentOptions: {
       keepAlive,
     },
   }, (err, resp, body) => {
-	  cb(err, resp, body);
+    cb(err, resp, body);
   });
 };
 
-const countString = function (str, substr, cb) {
+const countString = (str, substr, cb) => {
   let pos = str.indexOf(substr);
   const len = substr.length;
   let count = 0;
+
   if (pos > -1) {
     let offSet = len;
+
     while (pos !== -1) {
       count++;
       offSet = pos + len;
       pos = str.indexOf(substr, offSet);
     }
   }
+
   cb(count);
 };
 
-describe('proxy', function () {
-  this.timeout(30000);
+describe('proxy', () => {
   let srvA = null;
   let srvB = null;
   let proxy = null;
@@ -66,26 +68,26 @@ describe('proxy', function () {
 
   before(() => {
     testFiles.forEach((val) => {
-      testHashes[val] = crypto.createHash('sha256').update(fs.readFileSync(__dirname + '/www/' + val, 'utf8'), 'utf8').digest().toString();
+      testHashes[val] = crypto.createHash('sha256').update(fs.readFileSync(`${__dirname}/www/${val}`, 'utf8'), 'utf8').digest().toString();
     });
+
     srvA = http.createServer((req, res) => {
-      req.addListener('end', function () {
+      req.addListener('end', () => {
         fileStaticA.serve(req, res);
       }).resume();
-    });
-    srvA.listen(testPortA, testHost);
+    }).listen(testPortA, testHost);
+
     srvB = http.createServer((req, res) => {
-      req.addListener('end', function () {
+      req.addListener('end', () => {
         fileStaticB.serve(req, res);
       }).resume();
-    });
-    srvB.listen(testPortB, testHost);
+    }).listen(testPortB, testHost);
+
     wss = new WebSocket.Server({
       port: testWSPort,
-    });
-    wss.on('connection', (ws) => {
+    }).on('connection', (ws) => {
       // just reply with the same message
-      ws.on('message', function (message) {
+      ws.on('message', (message) => {
         ws.send(message);
       });
     });
@@ -95,8 +97,8 @@ describe('proxy', function () {
     proxy = new Proxy();
     proxy.listen({ port: testProxyPort }, done);
     proxy.onError((ctx, err, errorKind) => {
-      var url = (ctx && ctx.clientToProxyRequest) ? ctx.clientToProxyRequest.url : '';
-      console.log('proxy error: ' + errorKind + ' on ' + url + ':', err);
+      const url = (ctx && ctx.clientToProxyRequest) ? ctx.clientToProxyRequest.url : '';
+      console.log(`proxy error: ${errorKind} on ${url}:`, err);
     });
   });
 
@@ -116,10 +118,10 @@ describe('proxy', function () {
 
   describe('ca server', () => {
     it('should generate a root CA file', (done) => {
-      fs.access(__dirname + '/../.http-mitm-proxy/certs/ca.pem', function (err) {
-        var rtv = null;
+      fs.access(`${__dirname}/../.http-mitm-proxy/certs/ca.pem`, (err) => {
+        let rtv = null;
         if (err) {
-          rtv = __dirname + '/../.http-mitm-proxy/certs/ca.pem ' + err;
+          rtv = `${__dirname}/../.http-mitm-proxy/certs/ca.pem ${err}`;
         } else {
           rtv = true;
         }
@@ -131,21 +133,31 @@ describe('proxy', function () {
 
   describe('http server', () => {
     describe('get a 1024 byte file', () => {
-      it('a', function (done) {
-        getHttp(testUrlA + '/1024.bin', function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+      it('a', (done) => {
+        getHttp(`${testUrlA}/1024.bin`, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
           assert.equal(1024, len, 'body length is 1024');
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString(), 'sha256 hash matches');
           done();
         });
       });
-      it('b', function (done) {
-        getHttp(testUrlB + '/1024.bin', function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+
+      it('b', (done) => {
+        getHttp(`${testUrlB}/1024.bin`, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
           assert.equal(1024, len, 'body length is 1024');
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString(), 'sha256 hash matches');
           done();
@@ -154,23 +166,23 @@ describe('proxy', function () {
     });
   });
 
-  describe('proxy server', function () {
-    this.timeout(5000);
-
+  describe('proxy server', () => {
     it('should handle socket errors in connect', (done) => {
       // If a socket disconnects during the CONNECT process, the resulting
       // error should be handled and shouldn't cause the proxy server to fail.
       const socket = net.createConnection(testProxyPort, testHost, () => {
-        socket.write('CONNECT ' + testHost + ':' + testPortA + '\r\n\r\n');
+        socket.write(`CONNECT ${testHost}:${testPortA}\r\n\r\n`);
         socket.destroy();
       });
+
       socket.on('close', () => {
-        proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
+        proxyHttp(`${testUrlA}/1024.bin`, false, (err, resp, body) => {
           if (err) {
-            return done(new Error(err.message + " " + JSON.stringify(err)));
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
           }
-          var len = 0;
-          if (body.hasOwnProperty('length')) {
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) {
             len = body.length;
           }
           assert.equal(1024, len);
@@ -182,20 +194,29 @@ describe('proxy', function () {
 
     describe('proxy a 1024 byte file', () => {
       it('a', (done) => {
-        proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+        proxyHttp(`${testUrlA}/1024.bin`, false, (err, _resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
           done();
         });
       });
+
       it('b', (done) => {
-        proxyHttp(testUrlB + '/1024.bin', false, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+        proxyHttp(`${testUrlB}/1024.bin`, false, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
           done();
@@ -205,8 +226,12 @@ describe('proxy', function () {
 
     describe('ssl', () => {
       it.skip('proxys to google.com using local ca file', (done) => {
-        proxyHttp('https://www.google.com/', false, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
+        proxyHttp('https://www.google.com/', false, (err, resp) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
           assert.equal(200, resp.statusCode, '200 Status code from Google.');
           done();
         });
@@ -215,20 +240,28 @@ describe('proxy', function () {
 
     describe('proxy a 1024 byte file with keepAlive', () => {
       it('a', (done) => {
-        proxyHttp(testUrlA + '/1024.bin', true, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+        proxyHttp(`${testUrlA}/1024.bin`, true, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
           done();
         });
       });
+
       it('b', (done) => {
-        proxyHttp(testUrlB + '/1024.bin', true, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+        proxyHttp(`${testUrlB}/1024.bin`, true, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
           assert.equal(1024, len);
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
           done();
@@ -238,8 +271,12 @@ describe('proxy', function () {
 
     describe('ssl with keepAlive', () => {
       it.skip('proxys to google.com using local ca file', (done) => {
-        proxyHttp('https://www.google.com/', true, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
+        proxyHttp('https://www.google.com/', true, (err, resp) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
           assert.equal(200, resp.statusCode, '200 Status code from Google.');
           done();
         });
@@ -248,40 +285,52 @@ describe('proxy', function () {
 
     describe('host match', () => {
       it('proxy and modify AAA 5 times if hostA', (done) => {
-        proxy.onRequest(function (ctx, callback) {
-          var testHostNameA = '127.0.0.1:' + testPortA;
+        proxy.onRequest((ctx, callback) => {
+          const testHostNameA = `127.0.0.1:${testPortA}`;
+
           if (ctx.clientToProxyRequest.headers.host === testHostNameA) {
-            var chunks = [];
-            ctx.onResponseData(function (ctx, chunk, callback) {
+            const chunks = [];
+
+            ctx.onResponseData((_ctx, chunk, onResponseDataCallback) => {
               chunks.push(chunk);
-              return callback(null, null);
+              return onResponseDataCallback(null, null);
             });
-            ctx.onResponseEnd(function (ctx, callback) {
-              var body = (Buffer.concat(chunks)).toString();
-              for(var i = 0; i < 5; i++) {
-                var off = (i * 10);
-                body = body.substr(0, off) + 'AAA' + body.substr(off + 3);
+
+            ctx.onResponseEnd((onResponseEndContext, onREsponseEndCallback) => {
+              let body = (Buffer.concat(chunks)).toString();
+
+              for (let i = 0; i < 5; i++) {
+                const off = (i * 10);
+                body = `${body.substr(0, off)}AAA${body.substr(off + 3)}`;
               }
-              ctx.proxyToClientResponse.write(body);
-              return callback();
+
+              onResponseEndContext.proxyToClientResponse.write(body);
+              return onREsponseEndCallback();
             });
           }
+
           return callback();
         });
 
-        proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+        proxyHttp(`${testUrlA}/1024.bin`, false, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+
           assert.equal(1024, len);
-          countString(body, 'AAA', function (count) {
+
+          countString(body, 'AAA', (count) => {
             assert.equal(5, count);
-            proxyHttp(testUrlB + '/1024.bin', false, function (errB, respB, bodyB) {
-              if (errB) console.log('errB: ' + errB.toString());
-              var lenB = 0;
-              if (bodyB.hasOwnProperty('length')) lenB = bodyB.length;
+            proxyHttp(`${testUrlB}/1024.bin`, false, (errB, respB, bodyB) => {
+              if (errB) console.log(`errB: ${errB.toString()}`);
+              let lenB = 0;
+              if (Object.prototype.hasOwnProperty.call(bodyB, 'length')) lenB = bodyB.length;
               assert.equal(1024, lenB);
-              countString(bodyB, 'AAA', function (countB) {
+              countString(bodyB, 'AAA', (countB) => {
                 assert.equal(0, countB);
                 done();
               });
@@ -293,10 +342,14 @@ describe('proxy', function () {
 
     describe('chunked transfer', () => {
       it('should not change transfer encoding when no content modification is active', (done) => {
-        proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+        proxyHttp(`${testUrlA}/1024.bin`, false, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
           assert.equal(1024, len);
           assert.equal(null, resp.headers['transfer-encoding']);
           assert.equal(1024, resp.headers['content-length']);
@@ -305,31 +358,44 @@ describe('proxy', function () {
       });
 
       it('should use chunked transfer encoding when global onResponseData is active', (done) => {
-        proxy.onResponseData(function (ctx, chunk, callback) {
+        proxy.onResponseData((ctx, chunk, callback) => {
           callback(null, chunk);
         });
-        proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+
+        proxyHttp(`${testUrlA}/1024.bin`, false, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+
           assert.equal(1024, len);
           assert.equal('chunked', resp.headers['transfer-encoding']);
           assert.equal(null, resp.headers['content-length']);
+
           done();
         });
       });
 
       it('should use chunked transfer encoding when context onResponseData is active', (done) => {
-        proxy.onResponse(function (ctx, callback) {
-          ctx.onResponseData(function (ctx, chunk, callback) {
-            callback(null, chunk);
+        proxy.onResponse((ctx, callback) => {
+          ctx.onResponseData((_ctx, chunk, onResponseDataCallback) => {
+            onResponseDataCallback(null, chunk);
           });
           callback(null);
         });
-        proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+
+        proxyHttp(`${testUrlA}/1024.bin`, false, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+
+          let len = 0;
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
           assert.equal(1024, len);
           assert.equal('chunked', resp.headers['transfer-encoding']);
           assert.equal(null, resp.headers['content-length']);
@@ -338,56 +404,65 @@ describe('proxy', function () {
       });
 
       it('should use chunked transfer encoding when context ResponseFilter is active', (done) => {
-        proxy.onResponse(function (ctx, callback) {
+        proxy.onResponse((ctx, callback) => {
           ctx.addResponseFilter(zlib.createGzip());
           callback(null);
         });
-        proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
-          if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
-          var len = 0;
-          if (body.hasOwnProperty('length')) len = body.length;
+
+        proxyHttp(`${testUrlA}/1024.bin`, false, (err, resp, body) => {
+          if (err) {
+            done(new Error(`${err.message} ${JSON.stringify(err)}`));
+            return;
+          }
+          let len = 0;
+
+          if (Object.prototype.hasOwnProperty.call(body, 'length')) len = body.length;
+
           assert.equal(true, len < 1024); // Compressed body
           assert.equal('chunked', resp.headers['transfer-encoding']);
           assert.equal(null, resp.headers['content-length']);
+
           done();
         });
       });
     });
-  });
+  }).timeout(5000);
 
-  describe('websocket server', function () {
-    this.timeout(2000);
-
+  describe('websocket server', () => {
     it('send + receive message without proxy', (done) => {
-      let ws = new WebSocket(`ws://localhost:${  testWSPort}`);
-      let testMessage = 'does the websocket server reply?';
+      const ws = new WebSocket(`ws://localhost:${testWSPort}`);
+      const testMessage = 'does the websocket server reply?';
+
       ws.on('open', () => {
-        ws.on('message', function (data) {
+        ws.on('message', (data) => {
           assert.equal(data, testMessage);
           ws.close();
           done();
         });
+
         ws.send(testMessage);
       });
     });
 
     it('send + receive message through proxy', (done) => {
-      let ws = new WebSocket(`ws://localhost:${  testProxyPort}`, {
-        host: `localhost:${  testWSPort}`,
+      const ws = new WebSocket(`ws://localhost:${testProxyPort}`, {
+        host: `localhost:${testWSPort}`,
       });
-      let testMessage = 'does websocket proxying work?';
+      const testMessage = 'does websocket proxying work?';
+
       ws.on('open', () => {
-        ws.on('message', function (data) {
+        ws.on('message', (data) => {
           assert.equal(data, testMessage);
           ws.close();
           done();
         });
+
         ws.send(testMessage);
       });
     });
 
     it('websocket callbacks get called', (done) => {
-      let stats = {
+      const stats = {
         connection: false,
         frame: false,
         send: false,
@@ -395,39 +470,48 @@ describe('proxy', function () {
         close: false,
       };
 
+      const ws = new WebSocket(`ws://localhost:${testProxyPort}`, {
+        host: `localhost:${testWSPort}`,
+      });
+
+      const testMessage = 'does rewriting messages work?';
+      const rewrittenMessage = 'rewriting messages does work!';
+
       proxy.onWebSocketConnection((ctx, callback) => {
         stats.connection = true;
         return callback();
       });
+
       proxy.onWebSocketFrame((ctx, type, fromServer, message, flags, callback) => {
+        let msg = message;
+
         stats.frame = true;
-        message = rewrittenMessage;
-        return callback(null, message, flags);
+        msg = rewrittenMessage;
+        return callback(null, msg, flags);
       });
+
       proxy.onWebSocketSend((ctx, message, flags, callback) => {
         stats.send = true;
         return callback(null, message, flags);
       });
+
       proxy.onWebSocketMessage((ctx, message, flags, callback) => {
         stats.message = true;
         return callback(null, message, flags);
       });
+
       proxy.onWebSocketClose((ctx, code, message, callback) => {
         stats.close = true;
         callback(null, code, message);
       });
 
-      let ws = new WebSocket(`ws://localhost:${  testProxyPort}`, {
-        host: `localhost:${  testWSPort}`,
-      });
-      let testMessage = 'does rewriting messages work?';
-      var rewrittenMessage = 'rewriting messages does work!';
       ws.on('open', () => {
-        ws.on('message', function (data) {
+        ws.on('message', (data) => {
           assert.equal(data, rewrittenMessage);
           ws.close();
         });
-        ws.on('close', function () {
+
+        ws.on('close', () => {
           setTimeout(() => {
             assert(stats.connection);
             assert(stats.frame);
@@ -443,8 +527,9 @@ describe('proxy', function () {
             }
           }, 0);
         });
+
         ws.send(testMessage);
       });
     });
-  });
-});
+  }).timeout(2000);
+}).timeout(30000);
