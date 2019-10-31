@@ -1,51 +1,50 @@
-var util = require('util');
-var assert = require('assert');
-var crypto = require('crypto');
-var zlib = require('zlib');
-var request = require('request');
-var fs = require('fs');
-var http = require('http');
-var net = require('net');
-var nodeStatic = require('node-static');
-var WebSocket = require('ws');
-var Proxy = require('../');
-var fileStaticA = new nodeStatic.Server(__dirname + '/wwwA');
-var fileStaticB = new nodeStatic.Server(__dirname + '/wwwB');
-var testHost = '127.0.0.1';
-var testHostName = 'localhost';
-var testPortA = 40005;
-var testPortB = 40006;
-var testProxyPort = 40010;
-var testWSPort = 40007;
-var testUrlA = 'http://' + testHost + ':' + testPortA;
-var testUrlB = 'http://' + testHost + ':' + testPortB;
+const assert = require('assert');
+const crypto = require('crypto');
+const zlib = require('zlib');
+const request = require('request');
+const fs = require('fs');
+const http = require('http');
+const net = require('net');
+const nodeStatic = require('node-static');
+const WebSocket = require('ws');
+const Proxy = require('../');
 
-var getHttp = function (url, cb) {
-  request({ url: url }, function (err, resp, body) {
+const fileStaticA = new nodeStatic.Server(`${__dirname}/wwwA`);
+const fileStaticB = new nodeStatic.Server(`${__dirname }/wwwB`);
+const testHost = '127.0.0.1';
+const testPortA = 40005;
+const testPortB = 40006;
+const testProxyPort = 40010;
+const testWSPort = 40007;
+const testUrlA = `http://${ testHost}:${testPortA}`;
+const testUrlB = `http://${testHost}:${testPortB}`;
+
+const getHttp = function (url, cb) {
+  request({ url }, (err, resp, body) => {
     cb(err, resp, body);
   });
 };
 
-var proxyHttp = function (url, keepAlive, cb) {
+const proxyHttp = function (url, keepAlive, cb) {
   request({
-    url: url,
-    proxy: 'http://127.0.0.1:' + testProxyPort,
-    ca: fs.readFileSync(__dirname + '/../.http-mitm-proxy/certs/ca.pem'),
+    url,
+    proxy: `http://127.0.0.1:${testProxyPort}`,
+    ca: fs.readFileSync(`${__dirname }/../.http-mitm-proxy/certs/ca.pem`),
     agentOptions: {
-      keepAlive: keepAlive
-    }
-  }, function (err, resp, body) {
+      keepAlive,
+    },
+  }, (err, resp, body) => {
 	  cb(err, resp, body);
   });
 };
 
-var countString = function (str, substr, cb) {
-  var pos = str.indexOf(substr);
-  var len = substr.length;
-  var count = 0;
+const countString = function (str, substr, cb) {
+  let pos = str.indexOf(substr);
+  const len = substr.length;
+  let count = 0;
   if (pos > -1) {
-    var offSet = len;
-    while(pos !== -1) {
+    let offSet = len;
+    while (pos !== -1) {
       count++;
       offSet = pos + len;
       pos = str.indexOf(substr, offSet);
@@ -56,26 +55,26 @@ var countString = function (str, substr, cb) {
 
 describe('proxy', function () {
   this.timeout(30000);
-  var srvA = null;
-  var srvB = null;
-  var proxy = null;
-  var testHashes = {};
-  var testFiles = [
-    '1024.bin'
+  let srvA = null;
+  let srvB = null;
+  let proxy = null;
+  const testHashes = {};
+  const testFiles = [
+    '1024.bin',
   ];
-  var wss = null;
+  let wss = null;
 
-  before(function () {
-    testFiles.forEach(function (val) {
+  before(() => {
+    testFiles.forEach((val) => {
       testHashes[val] = crypto.createHash('sha256').update(fs.readFileSync(__dirname + '/www/' + val, 'utf8'), 'utf8').digest().toString();
     });
-    srvA = http.createServer(function (req, res) {
+    srvA = http.createServer((req, res) => {
       req.addListener('end', function () {
         fileStaticA.serve(req, res);
       }).resume();
     });
     srvA.listen(testPortA, testHost);
-    srvB = http.createServer(function (req, res) {
+    srvB = http.createServer((req, res) => {
       req.addListener('end', function () {
         fileStaticB.serve(req, res);
       }).resume();
@@ -84,7 +83,7 @@ describe('proxy', function () {
     wss = new WebSocket.Server({
       port: testWSPort,
     });
-    wss.on('connection', function (ws) {
+    wss.on('connection', (ws) => {
       // just reply with the same message
       ws.on('message', function (message) {
         ws.send(message);
@@ -92,21 +91,21 @@ describe('proxy', function () {
     });
   });
 
-  beforeEach(function (done) {
+  beforeEach((done) => {
     proxy = new Proxy();
     proxy.listen({ port: testProxyPort }, done);
-    proxy.onError(function (ctx, err, errorKind) {
+    proxy.onError((ctx, err, errorKind) => {
       var url = (ctx && ctx.clientToProxyRequest) ? ctx.clientToProxyRequest.url : '';
       console.log('proxy error: ' + errorKind + ' on ' + url + ':', err);
     });
   });
 
-  afterEach(function () {
+  afterEach(() => {
     proxy.close();
     proxy = null;
   });
 
-  after(function () {
+  after(() => {
     srvA.close();
     srvA = null;
     srvB.close();
@@ -115,8 +114,8 @@ describe('proxy', function () {
     wss = null;
   });
 
-  describe('ca server', function () {
-    it('should generate a root CA file', function (done) {
+  describe('ca server', () => {
+    it('should generate a root CA file', (done) => {
       fs.access(__dirname + '/../.http-mitm-proxy/certs/ca.pem', function (err) {
         var rtv = null;
         if (err) {
@@ -130,8 +129,8 @@ describe('proxy', function () {
     });
   });
 
-  describe('http server', function () {
-    describe('get a 1024 byte file', function () {
+  describe('http server', () => {
+    describe('get a 1024 byte file', () => {
       it('a', function (done) {
         getHttp(testUrlA + '/1024.bin', function (err, resp, body) {
           if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
@@ -158,14 +157,14 @@ describe('proxy', function () {
   describe('proxy server', function () {
     this.timeout(5000);
 
-    it('should handle socket errors in connect', function(done) {
+    it('should handle socket errors in connect', (done) => {
       // If a socket disconnects during the CONNECT process, the resulting
       // error should be handled and shouldn't cause the proxy server to fail.
-      const socket = net.createConnection(testProxyPort, testHost, function() {
+      const socket = net.createConnection(testProxyPort, testHost, () => {
         socket.write('CONNECT ' + testHost + ':' + testPortA + '\r\n\r\n');
         socket.destroy();
       });
-      socket.on('close', function() {
+      socket.on('close', () => {
         proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
           if (err) {
             return done(new Error(err.message + " " + JSON.stringify(err)));
@@ -178,11 +177,11 @@ describe('proxy', function () {
           assert.equal(testHashes['1024.bin'], crypto.createHash('sha256').update(body, 'utf8').digest().toString());
           done();
         });
-      })
+      });
     });
 
-    describe('proxy a 1024 byte file', function () {
-      it('a', function (done) {
+    describe('proxy a 1024 byte file', () => {
+      it('a', (done) => {
         proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
           if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
           var len = 0;
@@ -192,7 +191,7 @@ describe('proxy', function () {
           done();
         });
       });
-      it('b', function (done) {
+      it('b', (done) => {
         proxyHttp(testUrlB + '/1024.bin', false, function (err, resp, body) {
           if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
           var len = 0;
@@ -204,8 +203,8 @@ describe('proxy', function () {
       });
     });
 
-    describe('ssl', function () {
-      it.skip('proxys to google.com using local ca file', function (done) {
+    describe('ssl', () => {
+      it.skip('proxys to google.com using local ca file', (done) => {
         proxyHttp('https://www.google.com/', false, function (err, resp, body) {
           if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
           assert.equal(200, resp.statusCode, '200 Status code from Google.');
@@ -214,8 +213,8 @@ describe('proxy', function () {
       }).timeout(15000);
     });
 
-    describe('proxy a 1024 byte file with keepAlive', function () {
-      it('a', function (done) {
+    describe('proxy a 1024 byte file with keepAlive', () => {
+      it('a', (done) => {
         proxyHttp(testUrlA + '/1024.bin', true, function (err, resp, body) {
           if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
           var len = 0;
@@ -225,7 +224,7 @@ describe('proxy', function () {
           done();
         });
       });
-      it('b', function (done) {
+      it('b', (done) => {
         proxyHttp(testUrlB + '/1024.bin', true, function (err, resp, body) {
           if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
           var len = 0;
@@ -237,8 +236,8 @@ describe('proxy', function () {
       });
     });
 
-    describe('ssl with keepAlive', function () {
-      it.skip('proxys to google.com using local ca file', function (done) {
+    describe('ssl with keepAlive', () => {
+      it.skip('proxys to google.com using local ca file', (done) => {
         proxyHttp('https://www.google.com/', true, function (err, resp, body) {
           if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
           assert.equal(200, resp.statusCode, '200 Status code from Google.');
@@ -247,8 +246,8 @@ describe('proxy', function () {
       }).timeout(15000);
     });
 
-    describe('host match', function () {
-      it('proxy and modify AAA 5 times if hostA', function (done) {
+    describe('host match', () => {
+      it('proxy and modify AAA 5 times if hostA', (done) => {
         proxy.onRequest(function (ctx, callback) {
           var testHostNameA = '127.0.0.1:' + testPortA;
           if (ctx.clientToProxyRequest.headers.host === testHostNameA) {
@@ -292,8 +291,8 @@ describe('proxy', function () {
       });
     });
 
-    describe('chunked transfer', function () {
-      it('should not change transfer encoding when no content modification is active', function (done) {
+    describe('chunked transfer', () => {
+      it('should not change transfer encoding when no content modification is active', (done) => {
         proxyHttp(testUrlA + '/1024.bin', false, function (err, resp, body) {
           if (err) return done(new Error(err.message+" "+JSON.stringify(err)));
           var len = 0;
@@ -305,7 +304,7 @@ describe('proxy', function () {
         });
       });
 
-      it('should use chunked transfer encoding when global onResponseData is active', function (done) {
+      it('should use chunked transfer encoding when global onResponseData is active', (done) => {
         proxy.onResponseData(function (ctx, chunk, callback) {
           callback(null, chunk);
         });
@@ -320,7 +319,7 @@ describe('proxy', function () {
         });
       });
 
-      it('should use chunked transfer encoding when context onResponseData is active', function (done) {
+      it('should use chunked transfer encoding when context onResponseData is active', (done) => {
         proxy.onResponse(function (ctx, callback) {
           ctx.onResponseData(function (ctx, chunk, callback) {
             callback(null, chunk);
@@ -338,7 +337,7 @@ describe('proxy', function () {
         });
       });
 
-      it('should use chunked transfer encoding when context ResponseFilter is active', function (done) {
+      it('should use chunked transfer encoding when context ResponseFilter is active', (done) => {
         proxy.onResponse(function (ctx, callback) {
           ctx.addResponseFilter(zlib.createGzip());
           callback(null);
@@ -356,13 +355,13 @@ describe('proxy', function () {
     });
   });
 
-  describe('websocket server', function() {
+  describe('websocket server', function () {
     this.timeout(2000);
 
-    it('send + receive message without proxy', function (done) {
-      var ws = new WebSocket('ws://localhost:' + testWSPort);
-      var testMessage = 'does the websocket server reply?';
-      ws.on('open', function () {
+    it('send + receive message without proxy', (done) => {
+      let ws = new WebSocket(`ws://localhost:${  testWSPort}`);
+      let testMessage = 'does the websocket server reply?';
+      ws.on('open', () => {
         ws.on('message', function (data) {
           assert.equal(data, testMessage);
           ws.close();
@@ -372,12 +371,12 @@ describe('proxy', function () {
       });
     });
 
-    it('send + receive message through proxy', function (done) {
-      var ws = new WebSocket('ws://localhost:' + testProxyPort, {
-        host: 'localhost:' + testWSPort,
+    it('send + receive message through proxy', (done) => {
+      let ws = new WebSocket(`ws://localhost:${  testProxyPort}`, {
+        host: `localhost:${  testWSPort}`,
       });
-      var testMessage = 'does websocket proxying work?';
-      ws.on('open', function () {
+      let testMessage = 'does websocket proxying work?';
+      ws.on('open', () => {
         ws.on('message', function (data) {
           assert.equal(data, testMessage);
           ws.close();
@@ -387,8 +386,8 @@ describe('proxy', function () {
       });
     });
 
-    it('websocket callbacks get called', function (done) {
-      var stats = {
+    it('websocket callbacks get called', (done) => {
+      let stats = {
         connection: false,
         frame: false,
         send: false,
@@ -396,34 +395,34 @@ describe('proxy', function () {
         close: false,
       };
 
-      proxy.onWebSocketConnection(function (ctx, callback) {
+      proxy.onWebSocketConnection((ctx, callback) => {
         stats.connection = true;
         return callback();
       });
-      proxy.onWebSocketFrame(function(ctx, type, fromServer, message, flags, callback) {
+      proxy.onWebSocketFrame((ctx, type, fromServer, message, flags, callback) => {
         stats.frame = true;
         message = rewrittenMessage;
         return callback(null, message, flags);
       });
-      proxy.onWebSocketSend(function(ctx, message, flags, callback) {
+      proxy.onWebSocketSend((ctx, message, flags, callback) => {
         stats.send = true;
         return callback(null, message, flags);
       });
-      proxy.onWebSocketMessage(function(ctx, message, flags, callback) {
+      proxy.onWebSocketMessage((ctx, message, flags, callback) => {
         stats.message = true;
         return callback(null, message, flags);
       });
-      proxy.onWebSocketClose(function(ctx, code, message, callback) {
+      proxy.onWebSocketClose((ctx, code, message, callback) => {
         stats.close = true;
         callback(null, code, message);
       });
 
-      var ws = new WebSocket('ws://localhost:' + testProxyPort, {
-        host: 'localhost:' + testWSPort,
+      let ws = new WebSocket(`ws://localhost:${  testProxyPort}`, {
+        host: `localhost:${  testWSPort}`,
       });
-      var testMessage = 'does rewriting messages work?';
+      let testMessage = 'does rewriting messages work?';
       var rewrittenMessage = 'rewriting messages does work!';
-      ws.on('open', function () {
+      ws.on('open', () => {
         ws.on('message', function (data) {
           assert.equal(data, rewrittenMessage);
           ws.close();

@@ -29,6 +29,9 @@
   ],
   "license": "MIT",
   "devDependencies": {
+    "eslint": "^6.6.0",
+    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-plugin-import": "^2.18.2",
     "mocha": "^6.1.4",
     "node-static": "^0.7.10",
     "request": "^2.83.0"
